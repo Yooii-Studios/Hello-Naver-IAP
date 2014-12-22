@@ -152,11 +152,16 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
             mProVersionButton.setText("Purchased");
             mProVersionButton.setEnabled(false);
             mFeature1Button.setText("Purchased");
+        } else {
+            mProVersionButton.setEnabled(true);
+            mFeature1Button.setEnabled(true);
         }
         if (IabProducts.containsSku(this, IabProducts.SKU_FEATURE_1)) {
             MNLog.now("피처 1 구매");
             mFeature1Button.setText("Purchased");
             mFeature1Button.setEnabled(false);
+        } else {
+            mFeature1Button.setEnabled(true);
         }
     }
 
