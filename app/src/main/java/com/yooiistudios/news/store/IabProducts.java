@@ -20,10 +20,20 @@ public class IabProducts {
 
     private static final String SHARED_PREFERENCES_IAB = "SHARED_PREFERENCES_IAB";
 
-    public static List<String> makeProductKeyList() {
-        List<String> iabKeyList = new ArrayList<String>();
-        iabKeyList.add(SKU_FULL_VERSION);
-        iabKeyList.add(SKU_FEATURE_1);
+    public enum StoreType {
+        GOOGLE, NAVER, AMAZON, SAMSUNG
+    }
+
+    public static final StoreType STORE_TYPE = StoreType.NAVER;
+
+    public static ArrayList<String> makeProductKeyList() {
+        ArrayList<String> iabKeyList = new ArrayList<String>();
+        if (STORE_TYPE == StoreType.GOOGLE) {
+            iabKeyList.add(SKU_FULL_VERSION);
+            iabKeyList.add(SKU_FEATURE_1);
+        } else if (STORE_TYPE == StoreType.NAVER) {
+            iabKeyList = NIAPUtils.getAllProducts();
+        }
         return iabKeyList;
     }
 
@@ -63,7 +73,7 @@ public class IabProducts {
         edit.clear(); // 모두 삭제 후 다시 추가
         for (Purchase purchase : purchases) {
             if (purchase.getPurchaseType() == Purchase.PurchaseType.APPROVED) {
-                edit.putBoolean(NIAPUtils.googleSkuMap.get(purchase.getProductCode()), true);
+                edit.putBoolean(NIAPUtils.convertToGoogleSku(purchase.getProductCode()), true);
             }
         }
         edit.apply();

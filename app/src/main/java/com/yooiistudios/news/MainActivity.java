@@ -25,6 +25,7 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
     private Button mFeature1Button;
     private TextView mLogTextView;
 
+    // Naver
     private NIAPHelper mNIAPHelper = null;
     private boolean mNIAPHalfLoaded = false;
 
@@ -36,9 +37,7 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
         mFeature1Button = (Button) findViewById(R.id.feature_1_button);
         mLogTextView = (TextView) findViewById(R.id.log_text_view);
 
-        mNIAPHelper = new NIAPHelper(this, NIAPUtils.NIAP_PUBLIC_KEY);
-        mNIAPHelper.initialize(this);
-
+        initIap();
         updateUI();
     }
 
@@ -54,6 +53,15 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
         }
     }
 
+    private void initIap() {
+        if (IabProducts.STORE_TYPE == IabProducts.StoreType.GOOGLE) {
+
+        } else if (IabProducts.STORE_TYPE == IabProducts.StoreType.NAVER) {
+            mNIAPHelper = new NIAPHelper(this, NIAPUtils.NIAP_PUBLIC_KEY);
+            mNIAPHelper.initialize(this);
+        }
+    }
+
     /**
      * NIAPHelper callback
      */
@@ -65,7 +73,7 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
         }
 
         // 전체 아이템의 정보를 불러옴
-        mNIAPHelper.getProductDetailsAsync(NIAPUtils.getAllProducts(), new NIAPHelper.GetProductDetailsListener() {
+        mNIAPHelper.getProductDetailsAsync(IabProducts.makeProductKeyList(), new NIAPHelper.GetProductDetailsListener() {
             @Override
             public void onSuccess(List<Product> products, List<InvalidProduct> invalidProducts) {
                 // test
@@ -118,10 +126,10 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
     private void applyProductPrice(List<Product> products) {
         for (Product product : products) {
             if (product.getProductCode().equals(
-                    NIAPUtils.naverSkuMap.get(IabProducts.SKU_FULL_VERSION))) {
+                    NIAPUtils.convertToNaverSku(IabProducts.SKU_FULL_VERSION))) {
                 mProVersionButton.setText("₩ " + product.getProductPrice());
             } else if (product.getProductCode().equals(
-                    NIAPUtils.naverSkuMap.get(IabProducts.SKU_FEATURE_1))) {
+                    NIAPUtils.convertToNaverSku(IabProducts.SKU_FEATURE_1))) {
                 mFeature1Button.setText("₩ " + product.getProductPrice());
             }
         }
@@ -167,41 +175,53 @@ public class MainActivity extends ActionBarActivity implements NIAPHelper.OnInit
      * NIAPPurchase callback
      */
     private void purchaseProduct(String googleProductSku) {
-        MNLog.now(googleProductSku);
-        MNLog.now(NIAPUtils.naverSkuMap.get(googleProductSku));
-        mNIAPHelper.requestPayment(this, NIAPUtils.naverSkuMap.get(googleProductSku),
-                Md5Utils.getMd5String(googleProductSku), NIAPUtils.NIAP_REQUEST_CODE,
-                new NIAPHelper.RequestPaymentListener() {
-                    @Override
-                    public void onSuccess(Purchase purchase) {
-                        String productGoogleSku = NIAPUtils.naverSkuMap.get(purchase.getProductCode());
-                        if (purchase.getDeveloperPayload().equals(Md5Utils.getMd5String(productGoogleSku))) {
-                            IabProducts.saveIabProduct(MainActivity.this, productGoogleSku);
-                            mLogTextView.setText(purchase.getProductCode() + " 구매 완료");
-                            updateUI();
+        if (IabProducts.STORE_TYPE == IabProducts.StoreType.GOOGLE) {
+
+        } else if (IabProducts.STORE_TYPE == IabProducts.StoreType.NAVER) {
+            mNIAPHelper.requestPayment(this, NIAPUtils.convertToNaverSku(googleProductSku),
+                    Md5Utils.getMd5String(googleProductSku), NIAPUtils.NIAP_REQUEST_CODE,
+                    new NIAPHelper.RequestPaymentListener() {
+                        @Override
+                        public void onSuccess(Purchase purchase) {
+                            String purchasedProductGoogleSku =
+                                    NIAPUtils.convertToGoogleSku(purchase.getProductCode());
+                            // MD5 암호화 복호화를 통해 보낸 payload 와 구매된 payload 를 비교
+                            if (purchase.getDeveloperPayload().equals(Md5Utils.getMd5String(purchasedProductGoogleSku))) {
+                                // 구매 저장
+                                IabProducts.saveIabProduct(MainActivity.this, purchasedProductGoogleSku);
+                                // UI 적용
+                                mLogTextView.setText(purchase.getProductCode() + " 구매 완료");
+                                updateUI();
+                            }
+                        }
+
+                        @Override
+                        public void onCancel() {
+                            mLogTextView.setText("구매가 취소되었습니다");
+                        }
+
+                        @Override
+                        public void onFail(NIAPHelperErrorType niapHelperErrorType) {
+                            mLogTextView.setText(niapHelperErrorType.getErrorDetails());
                         }
                     }
-
-                    @Override
-                    public void onCancel() {
-                        mLogTextView.setText("구매가 취소되었습니다");
-                    }
-
-                    @Override
-                    public void onFail(NIAPHelperErrorType niapHelperErrorType) {
-                        mLogTextView.setText(niapHelperErrorType.getErrorDetails());
-                    }
-                }
-        );
+            );
+        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // 아래 코드는 반드시 포함되어야 합니다.
-        if (mNIAPHelper.handleActivityResult(requestCode, resultCode, data)) {
-            // NIAPHelper가 구매 결과를 처리 완료
+        if (IabProducts.STORE_TYPE == IabProducts.StoreType.GOOGLE) {
+
+        } else if (IabProducts.STORE_TYPE == IabProducts.StoreType.NAVER) {
+            // 아래 코드는 반드시 포함되어야 합니다.
+            if (mNIAPHelper.handleActivityResult(requestCode, resultCode, data)) {
+                // NIAPHelper 가 구매 결과를 처리 완료
+            } else {
+                // NIAPHelper 가 구매 결과를 처리하지 않음.
+                super.onActivityResult(requestCode, resultCode, data);
+            }
         } else {
-            // NIAPHelpoer가 구매 결과를 처리하지 않음.
             super.onActivityResult(requestCode, resultCode, data);
         }
     }

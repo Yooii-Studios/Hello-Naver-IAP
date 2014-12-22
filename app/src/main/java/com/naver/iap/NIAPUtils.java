@@ -13,8 +13,8 @@ public class NIAPUtils {
     private static final String NAVER_IAB_FULL_VERSION = "1000013194";
     private static final String NAVER_FEATURE_1 = "1000013195";
 
-    public static final Map<String, String> naverSkuMap;
-    public static final Map<String, String> googleSkuMap;
+    private static final Map<String, String> naverSkuMap;
+    private static final Map<String, String> googleSkuMap;
 
     private NIAPUtils() { throw new AssertionError("You MUST not create this class!"); }
 
@@ -26,6 +26,14 @@ public class NIAPUtils {
         googleSkuMap = new HashMap<>();
         googleSkuMap.put(NAVER_IAB_FULL_VERSION, IabProducts.SKU_FULL_VERSION);
         googleSkuMap.put(NAVER_FEATURE_1, IabProducts.SKU_FEATURE_1);
+    }
+
+    public static String convertToGoogleSku(String naverSku) {
+        return googleSkuMap.get(naverSku);
+    }
+
+    public static String convertToNaverSku(String googleSku) {
+        return naverSkuMap.get(googleSku);
     }
 
     public static ArrayList<String> getAllProducts() {
